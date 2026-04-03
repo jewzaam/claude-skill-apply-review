@@ -77,9 +77,15 @@ Use AskUserQuestion to notify the user. The question should include:
 - Which finding was applied (by ID and title)
 - Which files changed (brief summary)
 - Test results (pass count)
-- Options: "Yes, commit" / "Need changes"
+- Options: "Yes, commit" / "Need changes" / "Skip commits, apply all remaining"
 
 If the user says "Need changes", wait for their feedback, apply it, re-validate, and ask again.
+
+If the user says "Skip commits, apply all remaining" (or equivalent), enter **batch mode**:
+- Skip steps 3c–3e for all remaining findings (no handoff questions, no staging wait, no commits)
+- Continue implementing and validating each remaining finding (steps 3a–3b), marking tasks complete as you go
+- At the end, all changes are in the working tree, uncommitted — the user handles staging and committing on their own terms
+- Still run step 4 (final verification) when done
 
 #### 3d. Wait for Staging
 
