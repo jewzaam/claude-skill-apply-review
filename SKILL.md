@@ -1,8 +1,8 @@
 ---
 name: apply-review
-description: Apply findings from a Review-*.md file as iterative, committed fixes. Use when the user says "apply review", "fix review findings", "implement review", "apply the review", or has a Review-*.md file and wants its findings turned into code changes. Also triggers when the user references review items by ID (e.g., "fix I0", "apply I3") or says "let's work through the review."
+description: Apply findings from a Review-*.md file as iterative, committed fixes.
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep, AskUserQuestion, Agent, TaskCreate, TaskUpdate, TaskGet, TaskList
-argument-hint: "[Review-file.md]"
+argument-hint: "[Review-file.md] [C0 I1 S2...]"
 ---
 
 # Apply Review
@@ -24,7 +24,7 @@ The key value is discipline: each finding becomes an isolated, tested, committed
 
 ### 0. Establish a Clean Baseline
 
-Before touching any code, verify the project's checks pass cleanly. Run the full validation suite (`make test-unit`, `make lint`, `make typecheck`, `make format`) and capture the results.
+Before touching any code, verify the project's checks pass cleanly. Check the Makefile for available validation targets (e.g., `make test-unit`, `make lint`, `make typecheck`, `make format`) and run whichever exist. Capture the results.
 
 If any check fails, use AskUserQuestion to present the failures and ask:
 - "Fix first" — resolve the pre-existing failures before starting review work (preferred — a clean baseline makes it obvious when a review fix introduces a regression)
@@ -35,10 +35,12 @@ A clean starting state is strongly preferred. When pre-existing failures exist a
 ### 1. Parse the Review
 
 Read the review file and extract all findings from the **Findings** section. Each finding has:
-- **ID**: The prefix code (e.g., `I0`, `I3`, `S0`, `C1`)
+- **ID**: The prefix code — `C` (critical), `I` (important), `S` (suggestion) — followed by a sequence number (e.g., `C0`, `I3`, `S1`)
 - **Title**: The finding name
 - **File references**: Source file paths and line numbers
 - **Fix description**: What the review recommends changing
+
+**Scoped finding IDs:** If the user provided specific finding IDs as arguments (e.g., `/apply-review Review-PR-123.md C0 I2 S3`), only process those findings. Skip all others — they are out of scope for this run. This is how the `update-pr` skill delegates accepted local edits: it produces a `Review-PR-*.md` with the full traceability, then hands off only the findings that need code changes.
 
 Sort findings by implementation order — dependencies and risk:
 1. Smallest/most isolated changes first (one-line fixes, no test changes)
@@ -89,10 +91,9 @@ If the user says "Skip commits, apply all remaining" (or equivalent), enter **ba
 
 #### 3d. Wait for Staging
 
-The user stages files themselves. Do NOT run `git add`. Instead:
-- Check `git diff --cached --stat` to see if changes are staged
-- If nothing is staged, use AskUserQuestion to remind the user to stage
-- Once staged, proceed to commit
+The user stages files themselves. Do NOT run `git add`. Use AskUserQuestion to prompt the user that changes are ready for staging and commit. Once the user responds, verify staging with `git diff --cached --stat`:
+- If changes are staged, proceed to commit
+- If nothing is staged, use AskUserQuestion again to remind the user to stage — keep looping until changes appear in the index
 
 #### 3e. Commit
 
@@ -123,13 +124,7 @@ EOF
 
 ### 4. Final Verification
 
-After all findings are applied:
-- Run `make test-unit` (or equivalent full test suite)
-- Run `make lint`
-- Run `make typecheck`
-- Run `make format`
-
-Report the results. If any check fails and it's not pre-existing, investigate and fix before declaring done.
+After all findings are applied, re-run all available validation targets from the Makefile (the same set used in Step 0). Report the results. If any check fails and it's not pre-existing, investigate and fix before declaring done.
 
 ## Critical Rules
 
@@ -141,7 +136,7 @@ Report the results. If any check fails and it's not pre-existing, investigate an
 - **Always use AskUserQuestion at handoff** — the user has hooks that surface questions; plain text gets missed
 - **Check staging before committing** — verify `git diff --cached` shows the expected files
 - **Read before editing** — always read files before making changes
-- **Use make targets** — prefer `make test-unit`, `make lint`, `make typecheck` over raw commands
+- **Use make targets** — check the Makefile for available targets and prefer them over raw commands
 
 ## Edge Cases
 
