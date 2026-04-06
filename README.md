@@ -17,9 +17,10 @@ Each finding becomes an isolated, tested commit with a targeted message referenc
 ```
 /apply-review
 /apply-review Review-my-feature.md
+/apply-review Review-my-feature.md C0 I2 S3
 ```
 
-If no argument is given, the skill searches for `Review-*.md` files at the project root.
+If no argument is given, the skill searches for `Review-*.md` files at the project root. You can optionally specify finding IDs to apply only a subset — finding IDs use prefixes `C` (critical), `I` (important), and `S` (suggestion).
 
 ## Workflow Options
 
@@ -32,7 +33,7 @@ At each handoff, you choose how to proceed:
 ## Requirements
 
 - A `Review-*.md` file produced by [claude-skill-review](https://github.com/jewzaam/claude-skill-review)
-- Make targets for validation (`make test-unit`, `make lint`, `make typecheck`, `make format`)
+- Make targets for validation (e.g., `make test-unit`, `make lint`, `make typecheck`, `make format` — the skill checks the Makefile for available targets)
 
 ## License
 
