@@ -73,31 +73,28 @@ Run the project's test suite using make targets. Prefer the most targeted test c
 - If the failure is new (not in the baseline), fix it before proceeding — this is a regression from the current change
 - Re-run until the only failures are the pre-existing baseline ones (or none, if the baseline was clean)
 
-#### 3c. Hand Off for Review
+#### 3c. Hand Off for Review and Commit
 
-Use AskUserQuestion to notify the user. The question should include:
+Use AskUserQuestion to present a single decision point. The question should include:
 - Which finding was applied (by ID and title)
 - Which files changed (brief summary)
 - Test results (pass count)
-- Options: "Yes, commit" / "Need changes" / "Skip commits, apply all remaining"
+- A prompt to stage the files and reply: "Stage the changed files and reply **Commit** when ready, **Need changes** if something's wrong, or **Skip commits** to apply all remaining without committing."
 
-If the user says "Need changes", wait for their feedback, apply it, re-validate, and ask again.
+This is one question, one interaction. "Commit" means the user has already reviewed and staged — proceed directly to committing. No follow-up confirmation.
+
+If the user says "Need changes", wait for their feedback, apply it, re-validate, and ask again (same single-question format).
 
 If the user says "Skip commits, apply all remaining" (or equivalent), enter **batch mode**:
-- Skip steps 3c–3e for all remaining findings (no handoff questions, no staging wait, no commits)
+- Skip steps 3c–3d for all remaining findings (no handoff questions, no commits)
 - Continue implementing and validating each remaining finding (steps 3a–3b), marking tasks complete as you go
 - At the end, all changes are in the working tree, uncommitted — the user handles staging and committing on their own terms
 - Still run step 4 (final verification) when done
 
-#### 3d. Wait for Staging
+#### 3d. Commit
 
-The user stages files themselves. Do NOT run `git add`. Use AskUserQuestion to prompt the user that changes are ready for staging and commit. Once the user responds, verify staging with `git diff --cached --stat`:
-- If changes are staged, proceed to commit
-- If nothing is staged, use AskUserQuestion again to remind the user to stage — keep looping until changes appear in the index
+The user has staged the files. Commit immediately with a targeted message:
 
-#### 3e. Commit
-
-Write a targeted commit message based on the review finding:
 - **Format**: Conventional commits (`fix(scope):`, `feat(scope):`, `refactor(scope):`)
 - **Title**: Describes what changed, under 80 characters
 - **Body**: Why the change was needed (reference the review finding ID)
@@ -117,7 +114,7 @@ EOF
 )"
 ```
 
-#### 3f. Mark Complete and Continue
+#### 3e. Mark Complete and Continue
 
 - Mark the task as `completed`
 - Move to the next finding
@@ -129,12 +126,11 @@ After all findings are applied, re-run all available validation targets from the
 ## Critical Rules
 
 - **One finding per commit** — keeps changes reviewable and revertable
-- **Never run `git add`** — the user controls staging
+- **Never run `git add`** — the user controls staging; hooks block it
 - **Never run `git push`** — the user controls when to push
 - **Never change branches** — work on the current branch
 - **Always validate before handoff** — don't present broken changes to the user
 - **Always use AskUserQuestion at handoff** — the user has hooks that surface questions; plain text gets missed
-- **Check staging before committing** — verify `git diff --cached` shows the expected files
 - **Read before editing** — always read files before making changes
 - **Use make targets** — check the Makefile for available targets and prefer them over raw commands
 
